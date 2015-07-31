@@ -22,6 +22,9 @@ ADD ./run.sh /home/gotour/go-tour/run.sh
 # Make gotour own home dir
 RUN chown -R gotour /home/gotour
 
+# Expose the listening port
+EXPOSE 3999
+
 # Set cmd on run and run as gotour
 USER gotour
 CMD ["/home/gotour/go-tour/run.sh"]
