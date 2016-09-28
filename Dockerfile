@@ -4,24 +4,35 @@
 # image for Docker   #
 ######################
 
-# Set base image to Alpine.
-FROM gliderlabs/alpine
+# Set base image
+FROM alpine:3.4
 
 # Set maintainer.
 MAINTAINER shymega <shymega@shymega.org.uk>
 
-# Inject installation script.
-ADD ./install.sh /install.sh
+# Go-lang install.
+# Update packages and install.
+RUN apk add --update golang git
 
-# Run installation script.
-RUN /install.sh
+# Create docker container user.
+ENV USERNAME docker
+ENV GOPATH /docker/gotour
 
-# Add run.sh
-ADD ./run.sh /run.sh
+RUN addgroup -S "$USERNAME" \
+    && adduser -S "$USERNAME" -h /docker \
+    && adduser "$USERNAME" "$USERNAME"
 
-# Expose the listening port
+# Set user for the install
+USER "$USERNAME"
+
+# Move to GOPATH dir
+WORKDIR "$GOPATH"
+
+# Download gotour
+RUN go get golang.org/x/tour/gotour
+
+# Expose port
 EXPOSE 3999
 
-# Set cmd on run and run as gotour
-USER gotour
-CMD ["/run.sh"]
+# Set runtime command
+CMD ["/docker/gotour/bin/gotour", "--http=:3999"]
