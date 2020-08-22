@@ -5,50 +5,42 @@
 ######################
 
 # Set base image to Alpine.
-FROM alpine:3.8 AS builder
+FROM alpine:3.12 AS builder
 
 # Set maintainer.
 LABEL maintainer="Dom Rodriguez <shymega@shymega.org.uk>"
 
-RUN adduser -D -g '' docker \
- && apk add --update bash go git mercurial \
+RUN apk add --update bash go git mercurial \
     ca-certificates musl-dev \
-  && mkdir -p /docker \
-  && chown -R docker:docker /docker
+    && mkdir -p /work
 
-USER docker
-ENV GOPATH /docker/gopath
-
+ENV GOPATH /work
 ENV CGO_ENABLED=0
 ENV GOOS=linux
 ENV GOARCH=amd64
 
-RUN go get -v golang.org/x/tour/gotour
-
-WORKDIR $GOPATH/src/golang.org/x/tour/gotour
+RUN go get -v -d golang.org/x/tour
+WORKDIR $GOPATH/src/golang.org/x/tour
 
 RUN go build -a -installsuffix cgo -ldflags \
-  '-extldflags "-static"' -o /docker/gotour .
+    '-extldflags "-static"' -o /work/tour .
 
 # Clean up compile environment.
 
 USER root
 RUN apk del --no-cache --rdepends bash go git \
- mercurial ca-certificates musl-dev && \
- rm -rf /docker/gopath/pkg /docker/gopath/bin \
- /docker/gopath/src/golang.org/x/net \
- /docker/gopath/src/golang.org/x/tools
+    mercurial ca-certificates musl-dev && \
+    rm -rf /work/pkg /work/bin \
+    /work/src/golang.org/x/net \
+    /work/src/golang.org/x/tools
 
 # Produce final image.
-FROM scratch
+    FROM scratch
 
-ENV GOPATH /docker/gopath
-COPY --from=builder /etc/passwd /etc/passwd
-COPY --from=builder /tmp /tmp
-COPY --from=builder /docker/gopath /docker/gopath
-COPY --from=builder /docker/gotour /docker/gotour
+    ENV GOPATH /work
+    COPY --from=builder /tmp /tmp
+    COPY --from=builder /work /work
+    COPY --from=builder /work/tour /work/tour
 
-USER docker
-
-EXPOSE 3999
-ENTRYPOINT ["/docker/gotour", "-http=0.0.0.0:3999"]
+    EXPOSE 3999
+    ENTRYPOINT ["/work/tour", "-http=0.0.0.0:3999"]
